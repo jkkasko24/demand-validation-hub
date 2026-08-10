@@ -35,3 +35,9 @@ export function pct(views: number, signups: number): string {
   if (!views) return "0%";
   return `${((signups / views) * 100).toFixed(1)}%`;
 }
+
+export function money(cents: number, currency = "usd"): string {
+  const symbol = currency.toLowerCase() === "usd" ? "$" : `${currency.toUpperCase()} `;
+  const value = cents / 100;
+  return `${symbol}${value % 1 === 0 ? value.toFixed(0) : value.toFixed(2)}`;
+}

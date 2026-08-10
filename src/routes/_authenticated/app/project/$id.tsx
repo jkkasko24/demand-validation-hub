@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Label, StatTile, VerdictStamp } from "@/components/dr";
-import { pct, type PageContent } from "@/lib/dr";
+import { pct, money, type PageContent } from "@/lib/dr";
+import { refreshInsights, stopTest } from "@/lib/ads.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/project/$id")({
@@ -221,12 +223,15 @@ function ProjectDetail() {
         {page ? <ShareHelper baseUrl={publicUrl} /> : null}
       </section>
 
-      {/* CAMPAIGNS */}
+      {/* CAMPAIGN */}
+      <CampaignSection projectId={id} signups={data.signups} />
+
+      {/* VERDICT */}
       <section className="mt-14 mb-6">
-        <Label>Campaigns — coming soon</Label>
+        <Label>Verdict — coming soon</Label>
         <div className="card-paper mt-4 select-none border-dashed p-8 opacity-60">
           <p className="max-w-xl text-lg text-foreground">
-            Ad campaigns, autopilot, and your CONTINUE / PIVOT / STOP decision launch here soon.
+            Once autopilot has enough data, DemandRun delivers the call.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-6">
             <VerdictStamp verdict="CONTINUE" />
@@ -375,5 +380,224 @@ function EditPanel({
         </button>
       </div>
     </div>
+  );
+}
+
+type SignupRow = { email: string; utm_source: string | null; created_at: string | null };
+
+function CampaignSection({ projectId, signups }: { projectId: string; signups: SignupRow[] }) {
+  const qc = useQueryClient();
+  const refreshFn = useServerFn(refreshInsights);
+  const stopFn = useServerFn(stopTest);
+
+  const { data } = useQuery({
+    queryKey: ["campaign", projectId],
+    queryFn: async () => {
+      const { data: tests } = await supabase
+        .from("tests")
+        .select("id, status, budget_cap_cents, currency, starts_at, ends_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const test = tests?.[0] ?? null;
+      if (!test) return { test: null, actions: [], snapshots: [], variants: [] };
+
+      const [actions, snapshots, variants] = await Promise.all([
+        supabase
+          .from("autopilot_actions")
+          .select("id, action_type, human_log, executed_at")
+          .eq("test_id", test.id)
+          .order("executed_at", { ascending: false }),
+        supabase
+          .from("metric_snapshots")
+          .select("level, variant_id, impressions, clicks, spend_cents")
+          .eq("test_id", test.id),
+        supabase.from("ad_variants").select("id, angle_name, enabled").eq("test_id", test.id),
+      ]);
+
+      return {
+        test,
+        actions: actions.data ?? [],
+        snapshots: snapshots.data ?? [],
+        variants: variants.data ?? [],
+      };
+    },
+  });
+
+  const refresh = useMutation({
+    mutationFn: async () => {
+      if (!data?.test) throw new Error("No validation yet");
+      return refreshFn({ data: { testId: data.test.id } });
+    },
+    onSuccess: async ({ rows }) => {
+      await qc.invalidateQueries({ queryKey: ["campaign", projectId] });
+      toast.success(rows ? `Pulled ${rows} rows of platform data` : "No platform data yet");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const stop = useMutation({
+    mutationFn: async () => {
+      if (!data?.test) throw new Error("No validation yet");
+      return stopFn({ data: { testId: data.test.id } });
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["campaign", projectId] });
+      toast.success("Validation stopped — nothing is spending");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const test = data?.test ?? null;
+
+  if (!test) {
+    return (
+      <section className="mt-14">
+        <Label>Campaign</Label>
+        <div className="card-paper mt-4 p-8">
+          <p className="max-w-xl text-lg text-foreground">
+            No validation configured for this project yet.
+          </p>
+          <Link
+            to="/app/new"
+            className="mt-6 inline-flex rounded-xl bg-brand px-5 py-3 font-medium text-paper hover:bg-brand-deep"
+          >
+            New validation
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  const adRows = (data?.snapshots ?? []).filter((s) => s.level === "ad");
+  const adsetRows = (data?.snapshots ?? []).filter((s) => s.level === "adset");
+  const spend = adsetRows.reduce((sum, r) => sum + r.spend_cents, 0);
+  const impressions = adsetRows.reduce((sum, r) => sum + r.impressions, 0);
+  const clicks = adsetRows.reduce((sum, r) => sum + r.clicks, 0);
+  const spendPct = Math.min(100, (spend / Math.max(1, test.budget_cap_cents)) * 100);
+
+  const spendByVariant = adRows.reduce<Record<string, number>>((acc, r) => {
+    if (!r.variant_id) return acc;
+    acc[r.variant_id] = (acc[r.variant_id] ?? 0) + r.spend_cents;
+    return acc;
+  }, {});
+  const statusStyles: Record<string, string> = {
+    live: "bg-brand-tint text-brand-deep",
+    review: "bg-amber-tint text-amber",
+    draft: "bg-muted text-muted-foreground",
+    stopped: "bg-red-tint text-red",
+    done: "bg-muted text-muted-foreground",
+  };
+
+  return (
+    <section className="mt-14">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Label>Campaign</Label>
+        <div className="flex flex-wrap items-center gap-3">
+          {test.status === "live" ? (
+            <>
+              <button
+                onClick={() => refresh.mutate()}
+                disabled={refresh.isPending}
+                className="rounded-lg border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-brand hover:text-foreground disabled:opacity-60"
+              >
+                {refresh.isPending ? "Refreshing…" : "Refresh data"}
+              </button>
+              <button
+                onClick={() => stop.mutate()}
+                disabled={stop.isPending}
+                className="rounded-lg border border-red px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-red transition-colors hover:bg-red-tint disabled:opacity-60"
+              >
+                {stop.isPending ? "Stopping…" : "Stop validation"}
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/app/project/$id/review"
+              params={{ id: projectId }}
+              className="rounded-xl bg-brand px-4 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-paper transition-colors hover:bg-brand-deep"
+            >
+              Review & launch
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="card-paper mt-4 p-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={
+              "rounded-md px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] " +
+              (statusStyles[test.status] ?? "bg-muted text-muted-foreground")
+            }
+          >
+            {test.status}
+          </span>
+          <span className="font-mono text-xs text-muted-foreground">
+            cap {money(test.budget_cap_cents, test.currency)} ·{" "}
+            {test.ends_at ? `ends ${new Date(test.ends_at).toLocaleDateString()}` : "no end date"}
+          </span>
+        </div>
+
+        <div className="mt-5">
+          <div className="flex items-end justify-between font-mono text-xs">
+            <span className="text-muted-foreground">Spend vs cap</span>
+            <span className="text-foreground">
+              {money(spend, test.currency)} / {money(test.budget_cap_cents, test.currency)}
+            </span>
+          </div>
+          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-brand" style={{ width: `${spendPct}%` }} />
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-5 border-t border-dashed border-hairline pt-6 sm:grid-cols-3">
+          <StatTile label="Impressions" value={String(impressions)} />
+          <StatTile label="Clicks" value={String(clicks)} />
+          <StatTile
+            label="Cost per signup"
+            value={signups.length ? money(Math.round(spend / signups.length), test.currency) : "—"}
+            hint={`${signups.length} signups`}
+          />
+        </div>
+
+        {Object.keys(spendByVariant).length > 0 ? (
+          <div className="mt-6 border-t border-dashed border-hairline pt-4">
+            <Label>Spend by angle</Label>
+            {(data?.variants ?? []).map((v) => (
+              <div
+                key={v.id}
+                className="row-divide flex items-center justify-between py-2.5 font-mono text-xs last:border-b-0"
+              >
+                <span className="text-muted-foreground">{v.angle_name}</span>
+                <span className="text-foreground">
+                  {money(spendByVariant[v.id] ?? 0, test.currency)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="card-paper mt-5 p-0">
+        <div className="border-b border-dashed border-hairline px-6 py-3">
+          <span className="label-mono">Autopilot log</span>
+        </div>
+        {(data?.actions ?? []).length === 0 ? (
+          <p className="px-6 py-8 font-mono text-xs text-muted-foreground">Nothing has happened yet.</p>
+        ) : (
+          (data?.actions ?? []).map((a) => (
+            <div key={a.id} className="row-divide px-6 py-3 font-mono text-xs last:border-b-0">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-foreground">{a.human_log}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {new Date(a.executed_at).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
   );
 }

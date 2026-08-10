@@ -13,15 +13,23 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/app">
             <Logo />
           </Link>
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate({ to: "/" });
-            }}
-            className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-6">
+            <Link
+              to="/app/settings"
+              className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Ad channels
+            </Link>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/" });
+              }}
+              className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>

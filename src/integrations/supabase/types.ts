@@ -45,7 +45,9 @@ export type Database = {
           account_name: string | null
           created_at: string | null
           external_account_id: string | null
+          external_page_id: string | null
           id: string
+          page_name: string | null
           platform: string
           scopes: string[] | null
           token_expires_at: string | null
@@ -55,7 +57,9 @@ export type Database = {
           account_name?: string | null
           created_at?: string | null
           external_account_id?: string | null
+          external_page_id?: string | null
           id?: string
+          page_name?: string | null
           platform?: string
           scopes?: string[] | null
           token_expires_at?: string | null
@@ -65,7 +69,9 @@ export type Database = {
           account_name?: string | null
           created_at?: string | null
           external_account_id?: string | null
+          external_page_id?: string | null
           id?: string
+          page_name?: string | null
           platform?: string
           scopes?: string[] | null
           token_expires_at?: string | null
@@ -228,6 +234,60 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_snapshots: {
+        Row: {
+          clicks: number
+          external_ref: string
+          fetched_at: string
+          id: string
+          impressions: number
+          level: string
+          spend_cents: number
+          stat_date: string
+          test_id: string
+          variant_id: string | null
+        }
+        Insert: {
+          clicks?: number
+          external_ref: string
+          fetched_at?: string
+          id?: string
+          impressions?: number
+          level: string
+          spend_cents?: number
+          stat_date: string
+          test_id: string
+          variant_id?: string | null
+        }
+        Update: {
+          clicks?: number
+          external_ref?: string
+          fetched_at?: string
+          id?: string
+          impressions?: number
+          level?: string
+          spend_cents?: number
+          stat_date?: string
+          test_id?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_snapshots_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_snapshots_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ad_variants"
             referencedColumns: ["id"]
           },
         ]

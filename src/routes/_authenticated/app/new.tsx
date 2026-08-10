@@ -26,7 +26,12 @@ const AUDIENCES = [
   "Honestly not sure",
 ];
 
-const BUILD_STEPS = ["Wrote your positioning", "Generated your test page", "Wired up signup tracking"];
+const BUILD_STEPS = [
+  "Wrote your positioning",
+  "Generated your test page",
+  "Wired up signup tracking",
+  "Drafted three ad angles",
+];
 
 function Bubble({ children }: { children: React.ReactNode }) {
   return (
@@ -50,6 +55,7 @@ function NewValidation() {
   const [appAnswer, setAppAnswer] = useState("");
   const [audience, setAudience] = useState("");
   const [pain, setPain] = useState("");
+  const [budget, setBudget] = useState(100);
   const [draft, setDraft] = useState("");
   const [otherOpen, setOtherOpen] = useState(false);
   const [ticks, setTicks] = useState(0);
@@ -61,13 +67,13 @@ function NewValidation() {
   }, [step, ticks, otherOpen]);
 
   useEffect(() => {
-    if (step !== 3) return;
+    if (step !== 4) return;
     const timers = BUILD_STEPS.map((_, i) => window.setTimeout(() => setTicks(i + 1), 700 + i * 800));
     return () => timers.forEach(clearTimeout);
   }, [step]);
 
   useEffect(() => {
-    if (step !== 3 || ticks < BUILD_STEPS.length || created.current) return;
+    if (step !== 4 || ticks < BUILD_STEPS.length || created.current) return;
     created.current = true;
     void create();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,11 +143,58 @@ function NewValidation() {
         slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
       }
 
-      navigate({ to: "/app/project/$id", params: { id: project.id } });
+      const painShort = pain.replace(/\.$/, "").toLowerCase();
+      const starts = new Date();
+      const ends = new Date(Date.now() + 7 * 864e5);
+
+      const { data: test, error: tErr } = await supabase
+        .from("tests")
+        .insert({
+          project_id: project.id,
+          status: "review",
+          budget_cap_cents: budget * 100,
+          currency: "usd",
+          starts_at: starts.toISOString(),
+          ends_at: ends.toISOString(),
+          target_cpa_cents: Math.max(100, Math.round((budget * 100) / 25)),
+          plan: {
+            budget_split_pct: 100,
+            audiences: [
+              { name: `${audience} — US 25-54`, geo: ["US"], age_min: 25, age_max: 54, interests: [] },
+            ],
+          },
+        })
+        .select("id")
+        .single();
+      if (tErr) throw tErr;
+
+      const { error: vErr } = await supabase.from("ad_variants").insert([
+        {
+          test_id: test.id,
+          angle_name: "Pain-first",
+          headline: `Still ${painShort}?`,
+          body: `${pitch} — built for ${audience.toLowerCase()}.`,
+        },
+        {
+          test_id: test.id,
+          angle_name: "Outcome-first",
+          headline: pitch,
+          body: `Stop ${painShort}. Join the early list.`,
+        },
+        {
+          test_id: test.id,
+          angle_name: "Audience-first",
+          headline: `For ${audience.toLowerCase()}`,
+          body: `${pitch}. No setup, early access.`,
+        },
+      ]);
+      if (vErr) throw vErr;
+
+      navigate({ to: "/app/project/$id/review", params: { id: project.id } });
     } catch (err) {
       created.current = false;
       toast.error(err instanceof Error ? err.message : "Could not create your validation");
-      setStep(2);
+      setStep(3);
     }
   }
 
@@ -255,7 +308,41 @@ function NewValidation() {
           </form>
         ) : null}
 
+        {step >= 3 ? (
+          <Bubble>How much are you willing to spend to find out? This becomes a hard cap.</Bubble>
+        ) : null}
+        {step > 3 ? <Answer>${budget} lifetime cap</Answer> : null}
+
         {step === 3 ? (
+          <div className="card-paper p-6">
+            <Label>Budget cap</Label>
+            <div className="mt-4 font-mono text-3xl font-medium text-foreground">${budget}</div>
+            <input
+              type="range"
+              min={50}
+              max={500}
+              step={10}
+              value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+              className="mt-4 w-full accent-[var(--brand)]"
+            />
+            <div className="mt-1 flex justify-between font-mono text-[11px] text-muted-foreground">
+              <span>$50</span>
+              <span>$500</span>
+            </div>
+            <p className="mt-4 border-t border-dashed border-hairline pt-4 font-mono text-xs text-muted-foreground">
+              Campaigns are created with this as a lifetime budget. Spending more is not possible.
+            </p>
+            <button
+              onClick={() => setStep(4)}
+              className="mt-5 rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground transition-colors hover:bg-brand-deep"
+            >
+              Lock the cap
+            </button>
+          </div>
+        ) : null}
+
+        {step === 4 ? (
           <div className="card-paper p-6">
             <Label>Building your test page</Label>
             <ul className="mt-4 space-y-3">
