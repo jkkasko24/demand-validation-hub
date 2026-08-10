@@ -45,7 +45,9 @@ export type Database = {
           account_name: string | null
           created_at: string | null
           external_account_id: string | null
+          external_page_id: string | null
           id: string
+          page_name: string | null
           platform: string
           scopes: string[] | null
           token_expires_at: string | null
@@ -55,7 +57,9 @@ export type Database = {
           account_name?: string | null
           created_at?: string | null
           external_account_id?: string | null
+          external_page_id?: string | null
           id?: string
+          page_name?: string | null
           platform?: string
           scopes?: string[] | null
           token_expires_at?: string | null
@@ -65,7 +69,9 @@ export type Database = {
           account_name?: string | null
           created_at?: string | null
           external_account_id?: string | null
+          external_page_id?: string | null
           id?: string
+          page_name?: string | null
           platform?: string
           scopes?: string[] | null
           token_expires_at?: string | null
