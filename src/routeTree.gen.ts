@@ -16,6 +16,7 @@ import { Route as TSlugRouteImport } from './routes/t/$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app/new'
 import { Route as AuthenticatedAppProjectIdRouteImport } from './routes/_authenticated/app/project/$id'
+import { Route as ApiPublicMetaCallbackRouteImport } from './routes/api/public/meta/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const AuthenticatedAppProjectIdRoute =
     path: '/app/project/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicMetaCallbackRoute = ApiPublicMetaCallbackRouteImport.update({
+  id: '/api/public/meta/callback',
+  path: '/api/public/meta/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/project/$id': typeof AuthenticatedAppProjectIdRoute
+  '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/project/$id': typeof AuthenticatedAppProjectIdRoute
+  '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,13 +86,27 @@ export interface FileRoutesById {
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/project/$id': typeof AuthenticatedAppProjectIdRoute
+  '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/t/$slug' | '/app/new' | '/app/' | '/app/project/$id'
+    | '/'
+    | '/auth'
+    | '/t/$slug'
+    | '/app/new'
+    | '/app/'
+    | '/app/project/$id'
+    | '/api/public/meta/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/t/$slug' | '/app/new' | '/app' | '/app/project/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/t/$slug'
+    | '/app/new'
+    | '/app'
+    | '/app/project/$id'
+    | '/api/public/meta/callback'
   id:
     | '__root__'
     | '/'
@@ -94,6 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/new'
     | '/_authenticated/app/'
     | '/_authenticated/app/project/$id'
+    | '/api/public/meta/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -101,6 +124,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   TSlugRoute: typeof TSlugRoute
+  ApiPublicMetaCallbackRoute: typeof ApiPublicMetaCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppProjectIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/meta/callback': {
+      id: '/api/public/meta/callback'
+      path: '/api/public/meta/callback'
+      fullPath: '/api/public/meta/callback'
+      preLoaderRoute: typeof ApiPublicMetaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -177,17 +208,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   TSlugRoute: TSlugRoute,
+  ApiPublicMetaCallbackRoute: ApiPublicMetaCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
