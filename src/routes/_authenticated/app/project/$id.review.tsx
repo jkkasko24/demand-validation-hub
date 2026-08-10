@@ -201,6 +201,7 @@ function Review() {
           {!connection?.connected || !connection?.account_id || !connection?.page_id ? (
             <Link
               to="/app/settings"
+              search={{ meta: undefined }}
               className="mt-5 inline-flex rounded-xl border border-hairline px-4 py-2 font-mono text-[11px] uppercase tracking-[0.12em] text-foreground hover:border-brand"
             >
               Finish connecting Meta
