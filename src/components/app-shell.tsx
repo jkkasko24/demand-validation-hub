@@ -16,6 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-6">
             <Link
               to="/app/settings"
+              search={{ meta: undefined }}
               className="font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground"
             >
               Ad channels
