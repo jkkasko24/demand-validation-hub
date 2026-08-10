@@ -124,11 +124,18 @@ function NewValidation() {
         audience,
       };
 
-      const slug = await uniqueSlug(slugify(name));
-      const { error: lErr } = await supabase
-        .from("landing_pages")
-        .insert({ project_id: project.id, slug, content, published: true });
-      if (lErr) throw lErr;
+      // uniqueSlug can't see other users' unpublished slugs (RLS), so the
+      // insert may still hit the unique constraint — retry with a suffix.
+      const baseSlug = await uniqueSlug(slugify(name));
+      let slug = baseSlug;
+      for (let attempt = 0; ; attempt++) {
+        const { error: lErr } = await supabase
+          .from("landing_pages")
+          .insert({ project_id: project.id, slug, content, published: true });
+        if (!lErr) break;
+        if (lErr.code !== "23505" || attempt >= 4) throw lErr;
+        slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
+      }
 
       navigate({ to: "/app/project/$id", params: { id: project.id } });
     } catch (err) {
