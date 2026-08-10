@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as TSlugRouteImport } from './routes/t/$slug'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
 import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated/app/new'
+import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app/settings'
 import { Route as AuthenticatedAppProjectIdRouteImport } from './routes/_authenticated/app/project/$id'
 import { Route as ApiPublicMetaCallbackRouteImport } from './routes/api/public/meta/callback'
 
@@ -47,6 +48,12 @@ const AuthenticatedAppNewRoute = AuthenticatedAppNewRouteImport.update({
   path: '/app/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAppSettingsRoute =
+  AuthenticatedAppSettingsRouteImport.update({
+    id: '/app/settings',
+    path: '/app/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAppProjectIdRoute =
   AuthenticatedAppProjectIdRouteImport.update({
     id: '/app/project/$id',
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/t/$slug': typeof TSlugRoute
   '/app/new': typeof AuthenticatedAppNewRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/project/$id': typeof AuthenticatedAppProjectIdRoute
   '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/t/$slug': typeof TSlugRoute
   '/app/new': typeof AuthenticatedAppNewRoute
+  '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/project/$id': typeof AuthenticatedAppProjectIdRoute
   '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
@@ -84,6 +93,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/t/$slug': typeof TSlugRoute
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
+  '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/project/$id': typeof AuthenticatedAppProjectIdRoute
   '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/t/$slug'
     | '/app/new'
+    | '/app/settings'
     | '/app/'
     | '/app/project/$id'
     | '/api/public/meta/callback'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/t/$slug'
     | '/app/new'
+    | '/app/settings'
     | '/app'
     | '/app/project/$id'
     | '/api/public/meta/callback'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/t/$slug'
     | '/_authenticated/app/new'
+    | '/_authenticated/app/settings'
     | '/_authenticated/app/'
     | '/_authenticated/app/project/$id'
     | '/api/public/meta/callback'
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/app/settings': {
+      id: '/_authenticated/app/settings'
+      path: '/app/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AuthenticatedAppSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/app/project/$id': {
       id: '/_authenticated/app/project/$id'
       path: '/app/project/$id'
@@ -190,12 +210,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
+  AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppProjectIdRoute: typeof AuthenticatedAppProjectIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
+  AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppProjectIdRoute: AuthenticatedAppProjectIdRoute,
 }
