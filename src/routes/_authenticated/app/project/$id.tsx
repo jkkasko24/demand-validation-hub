@@ -221,12 +221,15 @@ function ProjectDetail() {
         {page ? <ShareHelper baseUrl={publicUrl} /> : null}
       </section>
 
-      {/* CAMPAIGNS */}
+      {/* CAMPAIGN */}
+      <CampaignSection projectId={id} signups={data.signups} />
+
+      {/* VERDICT */}
       <section className="mt-14 mb-6">
-        <Label>Campaigns — coming soon</Label>
+        <Label>Verdict — coming soon</Label>
         <div className="card-paper mt-4 select-none border-dashed p-8 opacity-60">
           <p className="max-w-xl text-lg text-foreground">
-            Ad campaigns, autopilot, and your CONTINUE / PIVOT / STOP decision launch here soon.
+            Once autopilot has enough data, DemandRun delivers the call.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-6">
             <VerdictStamp verdict="CONTINUE" />
