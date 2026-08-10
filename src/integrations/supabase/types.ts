@@ -14,13 +14,151 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      landing_pages: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          project_id: string
+          published: boolean | null
+          slug: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          project_id: string
+          published?: boolean | null
+          slug: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          project_id?: string
+          published?: boolean | null
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing_pages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_views: {
+        Row: {
+          created_at: string | null
+          id: string
+          landing_page_id: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          landing_page_id: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          landing_page_id?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_views_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          app_url: string | null
+          category: string | null
+          created_at: string | null
+          id: string
+          name: string
+          positioning: Json | null
+          user_id: string
+        }
+        Insert: {
+          app_url?: string | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          positioning?: Json | null
+          user_id: string
+        }
+        Update: {
+          app_url?: string | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          positioning?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      signups: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          landing_page_id: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          landing_page_id: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          landing_page_id?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signups_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      owns_landing_page: { Args: { _lp_id: string }; Returns: boolean }
+      owns_project: { Args: { _project_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
