@@ -69,7 +69,8 @@ function PublicPage() {
       .from("signups")
       .insert({ landing_page_id: state.id, email: email.trim(), ...utms() });
     setBusy(false);
-    if (insertError) {
+    // 23505 = this email already signed up on this page; that's still a success.
+    if (insertError && insertError.code !== "23505") {
       setError("Something went wrong. Try again.");
       return;
     }
