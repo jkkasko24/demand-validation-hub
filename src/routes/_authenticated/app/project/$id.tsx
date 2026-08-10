@@ -23,7 +23,7 @@ type Detail = {
   project: { id: string; name: string; app_url: string | null };
   page: { id: string; slug: string; published: boolean; content: PageContent } | null;
   views: { utm_source: string | null }[];
-  signups: { email: string; utm_source: string | null; created_at: string }[];
+  signups: { email: string; utm_source: string | null; created_at: string | null }[];
 };
 
 function ProjectDetail() {
@@ -93,7 +93,10 @@ function ProjectDetail() {
       .from("landing_pages")
       .update({ published: !page.published })
       .eq("id", page.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await qc.invalidateQueries({ queryKey: ["project", id] });
     toast.success(page.published ? "Page unpublished" : "Page is live");
   }
@@ -185,7 +188,7 @@ function ProjectDetail() {
                     <span className="flex-1 truncate text-foreground">{s.email}</span>
                     <span className="w-24 truncate text-muted-foreground">{s.utm_source || "direct"}</span>
                     <span className="w-24 text-right text-muted-foreground">
-                      {new Date(s.created_at).toLocaleDateString()}
+                      {s.created_at ? new Date(s.created_at).toLocaleDateString() : "—"}
                     </span>
                   </div>
                 ))}
@@ -309,7 +312,10 @@ function EditPanel({
       .update({ content: content as unknown as never })
       .eq("id", page.id);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     onSaved();
     toast.success("Content saved");
   }
