@@ -143,11 +143,58 @@ function NewValidation() {
         slug = `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`;
       }
 
-      navigate({ to: "/app/project/$id", params: { id: project.id } });
+      const painShort = pain.replace(/\.$/, "").toLowerCase();
+      const starts = new Date();
+      const ends = new Date(Date.now() + 7 * 864e5);
+
+      const { data: test, error: tErr } = await supabase
+        .from("tests")
+        .insert({
+          project_id: project.id,
+          status: "review",
+          budget_cap_cents: budget * 100,
+          currency: "usd",
+          starts_at: starts.toISOString(),
+          ends_at: ends.toISOString(),
+          target_cpa_cents: Math.max(100, Math.round((budget * 100) / 25)),
+          plan: {
+            budget_split_pct: 100,
+            audiences: [
+              { name: `${audience} — US 25-54`, geo: ["US"], age_min: 25, age_max: 54, interests: [] },
+            ],
+          },
+        })
+        .select("id")
+        .single();
+      if (tErr) throw tErr;
+
+      const { error: vErr } = await supabase.from("ad_variants").insert([
+        {
+          test_id: test.id,
+          angle_name: "Pain-first",
+          headline: `Still ${painShort}?`,
+          body: `${pitch} — built for ${audience.toLowerCase()}.`,
+        },
+        {
+          test_id: test.id,
+          angle_name: "Outcome-first",
+          headline: pitch,
+          body: `Stop ${painShort}. Join the early list.`,
+        },
+        {
+          test_id: test.id,
+          angle_name: "Audience-first",
+          headline: `For ${audience.toLowerCase()}`,
+          body: `${pitch}. No setup, early access.`,
+        },
+      ]);
+      if (vErr) throw vErr;
+
+      navigate({ to: "/app/project/$id/review", params: { id: project.id } });
     } catch (err) {
       created.current = false;
       toast.error(err instanceof Error ? err.message : "Could not create your validation");
-      setStep(2);
+      setStep(3);
     }
   }
 
