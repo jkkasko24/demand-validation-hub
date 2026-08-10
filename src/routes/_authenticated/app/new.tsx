@@ -308,7 +308,41 @@ function NewValidation() {
           </form>
         ) : null}
 
+        {step >= 3 ? (
+          <Bubble>How much are you willing to spend to find out? This becomes a hard cap.</Bubble>
+        ) : null}
+        {step > 3 ? <Answer>${budget} lifetime cap</Answer> : null}
+
         {step === 3 ? (
+          <div className="card-paper p-6">
+            <Label>Budget cap</Label>
+            <div className="mt-4 font-mono text-3xl font-medium text-foreground">${budget}</div>
+            <input
+              type="range"
+              min={50}
+              max={500}
+              step={10}
+              value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+              className="mt-4 w-full accent-[var(--brand)]"
+            />
+            <div className="mt-1 flex justify-between font-mono text-[11px] text-muted-foreground">
+              <span>$50</span>
+              <span>$500</span>
+            </div>
+            <p className="mt-4 border-t border-dashed border-hairline pt-4 font-mono text-xs text-muted-foreground">
+              Campaigns are created with this as a lifetime budget. Spending more is not possible.
+            </p>
+            <button
+              onClick={() => setStep(4)}
+              className="mt-5 rounded-xl bg-primary px-5 py-3 font-medium text-primary-foreground transition-colors hover:bg-brand-deep"
+            >
+              Lock the cap
+            </button>
+          </div>
+        ) : null}
+
+        {step === 4 ? (
           <div className="card-paper p-6">
             <Label>Building your test page</Label>
             <ul className="mt-4 space-y-3">
