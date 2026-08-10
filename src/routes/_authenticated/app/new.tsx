@@ -26,7 +26,12 @@ const AUDIENCES = [
   "Honestly not sure",
 ];
 
-const BUILD_STEPS = ["Wrote your positioning", "Generated your test page", "Wired up signup tracking"];
+const BUILD_STEPS = [
+  "Wrote your positioning",
+  "Generated your test page",
+  "Wired up signup tracking",
+  "Drafted three ad angles",
+];
 
 function Bubble({ children }: { children: React.ReactNode }) {
   return (

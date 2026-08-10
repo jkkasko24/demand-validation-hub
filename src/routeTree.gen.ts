@@ -18,6 +18,7 @@ import { Route as AuthenticatedAppNewRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAppSettingsRouteImport } from './routes/_authenticated/app/settings'
 import { Route as AuthenticatedAppProjectIdRouteImport } from './routes/_authenticated/app/project/$id'
 import { Route as ApiPublicMetaCallbackRouteImport } from './routes/api/public/meta/callback'
+import { Route as AuthenticatedAppProjectIdReviewRouteImport } from './routes/_authenticated/app/project/$id.review'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -65,6 +66,12 @@ const ApiPublicMetaCallbackRoute = ApiPublicMetaCallbackRouteImport.update({
   path: '/api/public/meta/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAppProjectIdReviewRoute =
+  AuthenticatedAppProjectIdReviewRouteImport.update({
+    id: '/review',
+    path: '/review',
+    getParentRoute: () => AuthenticatedAppProjectIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,8 +80,9 @@ export interface FileRoutesByFullPath {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app/': typeof AuthenticatedAppIndexRoute
-  '/app/project/$id': typeof AuthenticatedAppProjectIdRoute
+  '/app/project/$id': typeof AuthenticatedAppProjectIdRouteWithChildren
   '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
+  '/app/project/$id/review': typeof AuthenticatedAppProjectIdReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,8 +91,9 @@ export interface FileRoutesByTo {
   '/app/new': typeof AuthenticatedAppNewRoute
   '/app/settings': typeof AuthenticatedAppSettingsRoute
   '/app': typeof AuthenticatedAppIndexRoute
-  '/app/project/$id': typeof AuthenticatedAppProjectIdRoute
+  '/app/project/$id': typeof AuthenticatedAppProjectIdRouteWithChildren
   '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
+  '/app/project/$id/review': typeof AuthenticatedAppProjectIdReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,8 +104,9 @@ export interface FileRoutesById {
   '/_authenticated/app/new': typeof AuthenticatedAppNewRoute
   '/_authenticated/app/settings': typeof AuthenticatedAppSettingsRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
-  '/_authenticated/app/project/$id': typeof AuthenticatedAppProjectIdRoute
+  '/_authenticated/app/project/$id': typeof AuthenticatedAppProjectIdRouteWithChildren
   '/api/public/meta/callback': typeof ApiPublicMetaCallbackRoute
+  '/_authenticated/app/project/$id/review': typeof AuthenticatedAppProjectIdReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/project/$id'
     | '/api/public/meta/callback'
+    | '/app/project/$id/review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/project/$id'
     | '/api/public/meta/callback'
+    | '/app/project/$id/review'
   id:
     | '__root__'
     | '/'
@@ -130,6 +142,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/app/project/$id'
     | '/api/public/meta/callback'
+    | '/_authenticated/app/project/$id/review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -205,21 +218,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMetaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/app/project/$id/review': {
+      id: '/_authenticated/app/project/$id/review'
+      path: '/review'
+      fullPath: '/app/project/$id/review'
+      preLoaderRoute: typeof AuthenticatedAppProjectIdReviewRouteImport
+      parentRoute: typeof AuthenticatedAppProjectIdRoute
+    }
   }
 }
+
+interface AuthenticatedAppProjectIdRouteChildren {
+  AuthenticatedAppProjectIdReviewRoute: typeof AuthenticatedAppProjectIdReviewRoute
+}
+
+const AuthenticatedAppProjectIdRouteChildren: AuthenticatedAppProjectIdRouteChildren =
+  {
+    AuthenticatedAppProjectIdReviewRoute: AuthenticatedAppProjectIdReviewRoute,
+  }
+
+const AuthenticatedAppProjectIdRouteWithChildren =
+  AuthenticatedAppProjectIdRoute._addFileChildren(
+    AuthenticatedAppProjectIdRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAppNewRoute: typeof AuthenticatedAppNewRoute
   AuthenticatedAppSettingsRoute: typeof AuthenticatedAppSettingsRoute
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
-  AuthenticatedAppProjectIdRoute: typeof AuthenticatedAppProjectIdRoute
+  AuthenticatedAppProjectIdRoute: typeof AuthenticatedAppProjectIdRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAppNewRoute: AuthenticatedAppNewRoute,
   AuthenticatedAppSettingsRoute: AuthenticatedAppSettingsRoute,
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
-  AuthenticatedAppProjectIdRoute: AuthenticatedAppProjectIdRoute,
+  AuthenticatedAppProjectIdRoute: AuthenticatedAppProjectIdRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
