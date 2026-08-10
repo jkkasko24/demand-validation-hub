@@ -232,6 +232,60 @@ export type Database = {
           },
         ]
       }
+      metric_snapshots: {
+        Row: {
+          clicks: number
+          external_ref: string
+          fetched_at: string
+          id: string
+          impressions: number
+          level: string
+          spend_cents: number
+          stat_date: string
+          test_id: string
+          variant_id: string | null
+        }
+        Insert: {
+          clicks?: number
+          external_ref: string
+          fetched_at?: string
+          id?: string
+          impressions?: number
+          level: string
+          spend_cents?: number
+          stat_date: string
+          test_id: string
+          variant_id?: string | null
+        }
+        Update: {
+          clicks?: number
+          external_ref?: string
+          fetched_at?: string
+          id?: string
+          impressions?: number
+          level?: string
+          spend_cents?: number
+          stat_date?: string
+          test_id?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_snapshots_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_snapshots_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "ad_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_views: {
         Row: {
           created_at: string | null
