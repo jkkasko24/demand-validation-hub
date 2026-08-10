@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Label, StatTile, VerdictStamp } from "@/components/dr";
-import { pct, type PageContent } from "@/lib/dr";
+import { pct, money, type PageContent } from "@/lib/dr";
+import { refreshInsights, stopTest } from "@/lib/ads.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/project/$id")({
