@@ -481,13 +481,6 @@ function CampaignSection({ projectId, signups }: { projectId: string; signups: S
     acc[r.variant_id] = (acc[r.variant_id] ?? 0) + r.spend_cents;
     return acc;
   }, {});
-  const signupsByVariant = signups.reduce<Record<string, number>>((acc, s) => {
-    const key = s.utm_source === "meta" ? "meta" : "other";
-    if (key !== "meta") return acc;
-    return acc;
-  }, {});
-  void signupsByVariant;
-
   const statusStyles: Record<string, string> = {
     live: "bg-brand-tint text-brand-deep",
     review: "bg-amber-tint text-amber",
