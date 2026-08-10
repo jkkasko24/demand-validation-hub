@@ -123,7 +123,6 @@ export const launchTest = createServerFn({ method: "POST" })
       .eq("id", data.testId)
       .single();
     if (error || !test) throw new Error("Validation not found");
-    if (test.status === "live") throw new Error("This validation is already live");
 
     const page = test.projects?.landing_pages?.[0];
     if (!page) throw new Error("This project has no test page yet");
@@ -151,31 +150,111 @@ export const launchTest = createServerFn({ method: "POST" })
 
     const { adapter, connection } = await metaAdapterFor(context.userId);
 
-    let refs;
-    try {
-      refs = await adapter.createCampaign(payload, plan, variants);
-      await adapter.activate(refs);
-    } catch (err) {
-      await supabaseAdmin.from("tests").update({ status: "review" }).eq("id", test.id);
+    // Atomic claim: only one caller can move the test out of a stoppable state,
+    // so a double click can never create two funded campaigns.
+    const { data: claimed } = await supabaseAdmin
+      .from("tests")
+      .update({ status: "launching" })
+      .eq("id", test.id)
+      .not("status", "in", '("live","launching")')
+      .select("id");
+    if (!claimed || claimed.length === 0) {
+      throw new Error("This validation is already launching or live");
+    }
+
+    // Everything below is created PAUSED first, recorded in the database, and
+    // only then activated — the kill switch can always find what is running.
+    const refs = await adapter
+      .createCampaign(payload, plan, variants)
+      .catch(async (err: unknown) => {
+        await supabaseAdmin.from("tests").update({ status: "review" }).eq("id", test.id);
+        await logAction(
+          test.id,
+          "launch_failed",
+          `launch failed on meta while building the campaign · nothing was activated · ${err instanceof Error ? err.message : "unknown error"}`,
+        );
+        throw err;
+      });
+
+    const { data: campaignRow, error: campaignError } = await supabaseAdmin
+      .from("campaigns")
+      .insert({
+        test_id: test.id,
+        ad_account_id: connection.id,
+        platform: "meta",
+        external_campaign_id: refs.campaign_id,
+        external_adset_ids: refs as never,
+        budget_split_pct: plan.budget_split_pct,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (campaignError || !campaignRow) {
+      // Nothing is active yet: remove what was built so no orphan can ever spend.
+      let rolledBack = true;
+      try {
+        await adapter.teardown(refs);
+      } catch {
+        rolledBack = false;
+      }
+      await supabaseAdmin
+        .from("tests")
+        .update({ status: rolledBack ? "review" : "attention" })
+        .eq("id", test.id);
       await logAction(
         test.id,
         "launch_failed",
-        `launch failed on meta · nothing left running · ${err instanceof Error ? err.message : "unknown error"}`,
+        rolledBack
+          ? `launch aborted before activation · could not record the campaign · rolled back ${refs.adsets.length} ad set${refs.adsets.length === 1 ? "" : "s"}, ${refs.ads.length} ad${refs.ads.length === 1 ? "" : "s"} · nothing was activated`
+          : `launch aborted before activation · could not record the campaign and rollback failed · campaign ${refs.campaign_id ?? "unknown"} may still exist on meta (paused) · remove it from your Meta account`,
+        {
+          campaign_id: refs.campaign_id,
+          adsets: refs.adsets.length,
+          ads: refs.ads.length,
+          rolled_back: rolledBack,
+          activated: false,
+        },
+      );
+      throw new Error(campaignError?.message ?? "Could not record the campaign");
+    }
+
+    try {
+      await adapter.activate(refs);
+    } catch (err) {
+      // Some objects may already be ACTIVE — tear down and report exactly what happened.
+      let rolledBack = true;
+      try {
+        await adapter.teardown(refs);
+      } catch {
+        rolledBack = false;
+      }
+      await supabaseAdmin
+        .from("campaigns")
+        .update({ status: rolledBack ? "stopped" : "orphaned" })
+        .eq("id", campaignRow.id);
+      await supabaseAdmin
+        .from("tests")
+        .update({ status: rolledBack ? "review" : "attention" })
+        .eq("id", test.id);
+      await logAction(
+        test.id,
+        "launch_failed",
+        rolledBack
+          ? `launch failed on meta during activation · rolled back ${refs.adsets.length} ad set${refs.adsets.length === 1 ? "" : "s"}, ${refs.ads.length} ad${refs.ads.length === 1 ? "" : "s"} · nothing left running · ${err instanceof Error ? err.message : "unknown error"}`
+          : `launch failed on meta during activation · rollback incomplete · campaign ${refs.campaign_id ?? "unknown"} may still be running on meta · stop it from the dashboard · ${err instanceof Error ? err.message : "unknown error"}`,
+        {
+          campaign_id: refs.campaign_id,
+          adsets: refs.adsets.length,
+          ads: refs.ads.length,
+          rolled_back: rolledBack,
+          activated: true,
+        },
       );
       throw err;
     }
 
-    const { error: campaignError } = await supabaseAdmin.from("campaigns").insert({
-      test_id: test.id,
-      ad_account_id: connection.id,
-      platform: "meta",
-      external_campaign_id: refs.campaign_id,
-      external_adset_ids: refs as never,
-      budget_split_pct: plan.budget_split_pct,
-      status: "active",
-    });
-    if (campaignError) throw new Error(campaignError.message);
-
+    await supabaseAdmin.from("campaigns").update({ status: "active" }).eq("id", campaignRow.id);
     await supabaseAdmin.from("tests").update({ status: "live" }).eq("id", test.id);
 
     const budget = Math.round((test.budget_cap_cents * plan.budget_split_pct) / 100);
@@ -183,7 +262,7 @@ export const launchTest = createServerFn({ method: "POST" })
       test.id,
       "launch",
       `launched ${refs.adsets.length} ad set${refs.adsets.length === 1 ? "" : "s"}, ${refs.ads.length} ad${refs.ads.length === 1 ? "" : "s"} on meta · lifetime budget ${money(budget, test.currency)} · locked`,
-      { campaign_id: refs.campaign_id },
+      { campaign_id: refs.campaign_id, adsets: refs.adsets.length, ads: refs.ads.length },
     );
 
     return { ok: true, campaign_id: refs.campaign_id };
@@ -203,29 +282,46 @@ export const stopTest = createServerFn({ method: "POST" })
       .single();
     if (error || !test) throw new Error("Validation not found");
 
+    // Every non-stopped row counts — including half-launched ones.
     const { data: campaigns } = await context.supabase
       .from("campaigns")
-      .select("id, external_campaign_id, external_adset_ids")
-      .eq("test_id", test.id);
+      .select("id, external_campaign_id, external_adset_ids, status")
+      .eq("test_id", test.id)
+      .neq("status", "stopped");
+
+    const { adapter } = await metaAdapterFor(context.userId);
 
     let torn = 0;
+    let failed = 0;
     for (const campaign of campaigns ?? []) {
-      const { adapter } = await metaAdapterFor(context.userId);
-      await adapter.teardown(refsFromCampaignRow(campaign));
-      await supabaseAdmin.from("campaigns").update({ status: "stopped" }).eq("id", campaign.id);
-      torn += 1;
+      try {
+        await adapter.teardown(refsFromCampaignRow(campaign));
+        await supabaseAdmin.from("campaigns").update({ status: "stopped" }).eq("id", campaign.id);
+        torn += 1;
+      } catch {
+        await supabaseAdmin.from("campaigns").update({ status: "orphaned" }).eq("id", campaign.id);
+        failed += 1;
+      }
     }
 
-    await supabaseAdmin.from("tests").update({ status: "stopped" }).eq("id", test.id);
+    await supabaseAdmin
+      .from("tests")
+      .update({ status: failed > 0 ? "attention" : "stopped" })
+      .eq("id", test.id);
     await logAction(
       test.id,
       "stop",
-      torn > 0
-        ? `stopped validation · removed ${torn} campaign${torn === 1 ? "" : "s"} on meta · no further spend`
-        : "stopped validation · nothing was running",
+      failed > 0
+        ? `stop requested · removed ${torn} campaign${torn === 1 ? "" : "s"} on meta · ${failed} could not be removed · retry the stop`
+        : torn > 0
+          ? `stopped validation · removed ${torn} campaign${torn === 1 ? "" : "s"} on meta · no further spend`
+          : "stopped validation · nothing was running",
+      { removed: torn, failed },
     );
+    if (failed > 0) throw new Error("Some campaigns could not be stopped on Meta — retry.");
     return { ok: true };
   });
+
 
 export const refreshInsights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
