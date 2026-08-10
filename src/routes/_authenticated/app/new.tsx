@@ -55,6 +55,7 @@ function NewValidation() {
   const [appAnswer, setAppAnswer] = useState("");
   const [audience, setAudience] = useState("");
   const [pain, setPain] = useState("");
+  const [budget, setBudget] = useState(100);
   const [draft, setDraft] = useState("");
   const [otherOpen, setOtherOpen] = useState(false);
   const [ticks, setTicks] = useState(0);
@@ -66,13 +67,13 @@ function NewValidation() {
   }, [step, ticks, otherOpen]);
 
   useEffect(() => {
-    if (step !== 3) return;
+    if (step !== 4) return;
     const timers = BUILD_STEPS.map((_, i) => window.setTimeout(() => setTicks(i + 1), 700 + i * 800));
     return () => timers.forEach(clearTimeout);
   }, [step]);
 
   useEffect(() => {
-    if (step !== 3 || ticks < BUILD_STEPS.length || created.current) return;
+    if (step !== 4 || ticks < BUILD_STEPS.length || created.current) return;
     created.current = true;
     void create();
     // eslint-disable-next-line react-hooks/exhaustive-deps
