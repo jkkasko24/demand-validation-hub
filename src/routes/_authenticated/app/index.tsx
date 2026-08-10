@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Label } from "@/components/dr";
-import { pct, type PageContent } from "@/lib/dr";
+import { pct } from "@/lib/dr";
 
 export const Route = createFileRoute("/_authenticated/app/")({
   head: () => ({
@@ -142,4 +142,3 @@ function Dashboard() {
   );
 }
 
-export type { PageContent };

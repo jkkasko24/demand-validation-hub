@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Label } from "@/components/dr";
-import { isEmail, nameFromAnswer, slugify, type PageContent } from "@/lib/dr";
+import { nameFromAnswer, slugify, type PageContent } from "@/lib/dr";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/app/new")({
@@ -277,4 +277,3 @@ function NewValidation() {
   );
 }
 
-export { isEmail };
