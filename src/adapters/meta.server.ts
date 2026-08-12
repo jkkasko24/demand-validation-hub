@@ -11,8 +11,9 @@ import {
   type MetricRow,
   type Test,
 } from "@/adapters/types";
+import { META_API_VERSION } from "@/adapters/meta.constants";
 
-const GRAPH = "https://graph.facebook.com/v21.0";
+const GRAPH = `https://graph.facebook.com/${META_API_VERSION}`;
 
 export type MetaCredentials = {
   accessToken: string;
