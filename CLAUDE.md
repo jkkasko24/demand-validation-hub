@@ -41,7 +41,7 @@ Fonts: Space Grotesk (display/UI) + IBM Plex Mono (labels, data, metadata). Colo
 
 ## M1 review findings (2026-08-10) — fix before public traffic
 
-A security/code review of the Lovable-generated M1 found the RLS fundamentals sound (signup emails not publicly readable, unpublished pages hidden, no committed secrets) plus the following. Items 1–3 are fixed by the migration `20260810_fix_rls_review.sql` if present; items 4–5 are code changes:
+A security/code review of the Lovable-generated M1 found the RLS fundamentals sound (signup emails not publicly readable, unpublished pages hidden, no committed secrets) plus the following. Items 1–3 are fixed by the migration `20260810132424_d92d6be8-9ce0-4af6-9769-24ecbd23be88.sql` if present; items 4–5 are code changes:
 
 1. FIXED BY MIGRATION: "public can read published pages" was `to anon` only — signed-in users saw "This page isn't live" on other users' published pages.
 2. FIXED BY MIGRATION: `page_views`/`signups` inserts were `with check (true)`; now they require the target page to be published.
