@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { AdVariant, ChannelPlan, MetricRow, Test } from "@/adapters/types";
+import { META_API_VERSION } from "@/adapters/meta.constants";
 
 function origin(): string {
   const request = getRequest();

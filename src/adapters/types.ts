@@ -58,8 +58,11 @@ export interface ChannelAdapter {
   createCampaign(test: Test, plan: ChannelPlan, variants: AdVariant[]): Promise<ExternalRefs>;
   activate(refs: ExternalRefs): Promise<void>;
   pauseAdSet(ref: AdSetRef): Promise<void>;
-  /** Reallocation only — callers must never pass a value above the test cap. */
-  updateBudget(ref: AdSetRef, newBudgetCents: number): Promise<void>;
+  /**
+   * Reallocation only. capCents is the test's hard cap; implementations must
+   * refuse any newBudgetCents above it.
+   */
+  updateBudget(ref: AdSetRef, newBudgetCents: number, capCents: number): Promise<void>;
   fetchInsights(refs: ExternalRefs, since: Date): Promise<MetricRow[]>;
   teardown(refs: ExternalRefs): Promise<void>;
 }
