@@ -152,12 +152,15 @@ export const launchTest = createServerFn({ method: "POST" })
 
     // Atomic claim: only one caller can move the test out of a stoppable state,
     // so a double click can never create two funded campaigns.
-    const { data: claimed } = await supabaseAdmin
+    const { data: claimed, error: claimError } = await supabaseAdmin
       .from("tests")
       .update({ status: "launching" })
       .eq("id", test.id)
       .not("status", "in", '("live","launching")')
       .select("id");
+    if (claimError) {
+      throw new Error(`Could not start the launch: ${claimError.message}`);
+    }
     if (!claimed || claimed.length === 0) {
       throw new Error("This validation is already launching or live");
     }
