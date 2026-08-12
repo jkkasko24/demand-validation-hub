@@ -36,7 +36,7 @@ export const getMetaAuthUrl = createServerFn({ method: "POST" })
     const redirectUri = `${origin()}/api/public/meta/callback`;
     const state = await signState({ uid: context.userId, exp: Date.now() + 10 * 60 * 1000 });
 
-    const url = new URL("https://www.facebook.com/v21.0/dialog/oauth");
+    const url = new URL(`https://www.facebook.com/${META_API_VERSION}/dialog/oauth`);
     url.searchParams.set("client_id", appId);
     url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "ads_management,ads_read,pages_show_list");
