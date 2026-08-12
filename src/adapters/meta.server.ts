@@ -11,8 +11,9 @@ import {
   type MetricRow,
   type Test,
 } from "@/adapters/types";
+import { META_API_VERSION } from "@/adapters/meta.constants";
 
-const GRAPH = "https://graph.facebook.com/v21.0";
+const GRAPH = `https://graph.facebook.com/${META_API_VERSION}`;
 
 export type MetaCredentials = {
   accessToken: string;
@@ -46,7 +47,9 @@ async function graph<T>(
   const res = await fetch(url.toString(), {
     method,
     headers: {
-      Authorization: `Bearer ${token}`,
+      // exchangeMetaCode calls this without a token; an empty bearer header
+      // makes Meta reject the request outright.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(body ? { "content-type": "application/x-www-form-urlencoded" } : {}),
     },
     ...(body ? { body } : {}),
@@ -185,7 +188,20 @@ export function createMetaAdapter(creds: MetaCredentials): ChannelAdapter {
       await graph(`/${ref.adset_id}`, token, { method: "POST", body: { status: "PAUSED" } });
     },
 
-    async updateBudget(ref: AdSetRef, newBudgetCents: number) {
+    async updateBudget(ref: AdSetRef, newBudgetCents: number, capCents: number) {
+      // The cap is enforced here, in the adapter, rather than by caller
+      // convention — a rule-engine bug must never be able to outspend it.
+      if (!Number.isFinite(capCents) || capCents <= 0) {
+        throw new Error("updateBudget requires the test's budget cap");
+      }
+      if (newBudgetCents > capCents) {
+        throw new Error(
+          `Refusing budget of ${newBudgetCents}c: above the test cap of ${capCents}c`,
+        );
+      }
+      // NOTE for M3: the campaign owns the lifetime budget (campaign budget
+      // optimisation), so Meta rejects per-ad-set budgets. Reallocation needs
+      // to move to the campaign object, or rely on Meta's own distribution.
       await graph(`/${ref.adset_id}`, token, {
         method: "POST",
         body: { lifetime_budget: String(Math.max(100, Math.round(newBudgetCents))) },
