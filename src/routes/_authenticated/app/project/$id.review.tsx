@@ -244,7 +244,7 @@ function Review() {
           <Label>Guardrails</Label>
           <div className="mt-4 space-y-0">
             <Row k="Hard cap" v={`${money(test.budget_cap_cents, test.currency)} lifetime`} />
-            <Row k="Overspend" v="impossible — cap set on the campaign" />
+            <Row k="Overspend" v="spend stops at the cap — enforced by Meta" />
             <Row k="Autopilot" v="off in this phase" />
             <Row k="Kill switch" v="Stop validation, any time" />
           </div>
