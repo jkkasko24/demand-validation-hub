@@ -139,7 +139,7 @@ function Settings() {
               <div>
                 <p className="text-lg text-foreground">Not connected</p>
                 <p className="mt-1 font-mono text-xs text-muted-foreground">
-                  ads_management · ads_read
+                  ads_management · ads_read · pages_show_list
                 </p>
               </div>
               <button
