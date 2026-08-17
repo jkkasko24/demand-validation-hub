@@ -481,8 +481,13 @@ function CampaignSection({ projectId, signups }: { projectId: string; signups: S
     acc[r.variant_id] = (acc[r.variant_id] ?? 0) + r.spend_cents;
     return acc;
   }, {});
+  // Any state where campaigns may exist on Meta. The kill switch must be
+  // reachable in all of them — especially the ones that mean something broke.
+  const STOPPABLE = ["live", "launching", "attention"];
   const statusStyles: Record<string, string> = {
     live: "bg-brand-tint text-brand-deep",
+    launching: "bg-amber-tint text-amber",
+    attention: "bg-red-tint text-red",
     review: "bg-amber-tint text-amber",
     draft: "bg-muted text-muted-foreground",
     stopped: "bg-red-tint text-red",
@@ -494,17 +499,28 @@ function CampaignSection({ projectId, signups }: { projectId: string; signups: S
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Label>Campaign</Label>
         <div className="flex flex-wrap items-center gap-3">
-          {test.status === "live" ? (
+          {STOPPABLE.includes(test.status) ? (
             <>
+              {test.status === "live" ? (
+                <button
+                  onClick={() => refresh.mutate()}
+                  disabled={refresh.isPending}
+                  className="rounded-lg border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-brand hover:text-foreground disabled:opacity-60"
+                >
+                  {refresh.isPending ? "Refreshing…" : "Refresh data"}
+                </button>
+              ) : null}
               <button
-                onClick={() => refresh.mutate()}
-                disabled={refresh.isPending}
-                className="rounded-lg border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-brand hover:text-foreground disabled:opacity-60"
-              >
-                {refresh.isPending ? "Refreshing…" : "Refresh data"}
-              </button>
-              <button
-                onClick={() => stop.mutate()}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "Stop this validation? This deletes the campaign, ad sets and ads from your Meta account. The platform data for this run goes with them and can't be recovered.",
+                    )
+                  ) {
+                    return;
+                  }
+                  stop.mutate();
+                }}
                 disabled={stop.isPending}
                 className="rounded-lg border border-red px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-red transition-colors hover:bg-red-tint disabled:opacity-60"
               >

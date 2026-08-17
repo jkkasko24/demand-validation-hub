@@ -244,7 +244,7 @@ function Review() {
           <Label>Guardrails</Label>
           <div className="mt-4 space-y-0">
             <Row k="Hard cap" v={`${money(test.budget_cap_cents, test.currency)} lifetime`} />
-            <Row k="Overspend" v="impossible — cap set on the campaign" />
+            <Row k="Overspend" v="spend stops at the cap — enforced by Meta" />
             <Row k="Autopilot" v="off in this phase" />
             <Row k="Kill switch" v="Stop validation, any time" />
           </div>
@@ -254,14 +254,18 @@ function Review() {
       <div className="mt-8 mb-6 flex flex-wrap items-center gap-4">
         <button
           onClick={() => launch.mutate()}
-          disabled={!ready || launch.isPending || test.status === "live"}
+          disabled={
+            !ready || launch.isPending || ["live", "launching", "attention"].includes(test.status)
+          }
           className="rounded-xl bg-brand px-6 py-3.5 font-medium text-paper transition-colors hover:bg-brand-deep disabled:opacity-50"
         >
-          {launch.isPending
+          {launch.isPending || test.status === "launching"
             ? "Launching…"
             : test.status === "live"
               ? "Already live"
-              : `Approve & launch · ${money(test.budget_cap_cents, test.currency)}`}
+              : test.status === "attention"
+                ? "Needs attention"
+                : `Approve & launch · ${money(test.budget_cap_cents, test.currency)}`}
         </button>
         <p className="font-mono text-xs text-muted-foreground">
           {test.status === "live"
